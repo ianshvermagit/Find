@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Recipe Finder - TheMealDB</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(to right, #ffe6e6, #fff0b3);
+    }
+    h1 {
+      text-align: center;
+      color: #d35400;
+      font-size: 3rem;
+      margin-bottom: 20px;
+    }
+    .search-box {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    input[type="text"] {
+      padding: 10px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      width: 60%;
+      max-width: 500px;
+    }
+    button {
+      margin-left: 10px;
+      padding: 10px 20px;
+      background-color: #e67e22;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #d35400;
+    }
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+    .card h3 {
+      margin: 10px 0;
+      color: #e67e22;
+    }
+    .recipe-detail {
+      max-width: 800px;
+      margin: 40px auto;
+      background-color: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+    }
+    .recipe-detail img {
+      width: 100%;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .ingredient-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .ingredient-item {
+      background-color: #fdf2e9;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Recipe Finder</h1>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search any dish..."/>
+    <button onclick="searchMeals()">Search</button>
+  </div>
+
+  <div class="results" id="results"></div>
+
+  <div class="recipe-detail" id="recipeDetail" style="display:none;"></div>
+
+  <script>
+    async function searchMeals() {
+      const query = document.getElementById('searchInput').value.trim();
+      const resultsContainer = document.getElementById('results');
+      const recipeDetail = document.getElementById('recipeDetail');
+      recipeDetail.style.display = 'none';
+      resultsContainer.innerHTML = '';
+
+      const res = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${query}`);
+      const data = await res.json();
+
+      if (!data.meals) {
+        resultsContainer.innerHTML = '<p style=\"text-align:center; color:red;\">No recipes found.</p>';
+        return;
+      }
+
+      data.meals.forEach(meal => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+          <h3>${meal.strMeal}</h3>
+          <button onclick="viewRecipe('${meal.idMeal}')">View Recipe</button>
+        `;
+        resultsContainer.appendChild(card);
+      });
+    }
+
+    async function viewRecipe(mealId) {
+      const res = await fetch(`https://www.themealdb.com/api/json/v1/1/lookup.php?i=${mealId}`);
+      const data = await res.json();
+      const meal = data.meals[0];
+
+      const ingredients = [];
+      for (let i = 1; i <= 20; i++) {
+        const ingredient = meal[`strIngredient${i}`];
+        const measure = meal[`strMeasure${i}`];
+        if (ingredient && ingredient.trim()) {
+          ingredients.push(`${ingredient} - ${measure}`);
+        }
+      }
+
+      const recipeDetail = document.getElementById('recipeDetail');
+      recipeDetail.innerHTML = `
+        <h2 style="color:#d35400">${meal.strMeal}</h2>
+        <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+        <h4>Ingredients:</h4>
+        <div class="ingredient-list">
+          ${ingredients.map(item => `<div class="ingredient-item">${item}</div>`).join('')}
+        </div>
+        <h4 style="margin-top:20px;">Instructions:</h4>
+        <p style="line-height:1.6">${meal.strInstructions}</p>
+        <a href="${meal.strYoutube}" target="_blank" style="color:#e67e22;text-decoration:underline;display:inline-block;margin-top:10px;">Watch on YouTube</a>
+      `;
+      recipeDetail.style.display = 'block';
+      window.scrollTo({ top: recipeDetail.offsetTop - 20, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
